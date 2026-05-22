@@ -232,3 +232,126 @@ public:
         }
         cout << "============================================================================================================\n";
     }
+    void urutkanPesanan() {
+        if (head == nullptr || head->next == nullptr) {
+            cout << "[!] Data tidak cukup untuk diurutkan.\n";
+            return;
+        }
+
+        bool swapped;
+        NodePesanan* ptr1;
+        NodePesanan* lptr = nullptr;
+
+        do {
+            swapped = false;
+            ptr1 = head;
+
+            while (ptr1->next != lptr) {
+                if (ptr1->data.totalHarga < ptr1->next->data.totalHarga) {
+                    Pesanan temp = ptr1->data;
+                    ptr1->data = ptr1->next->data;
+                    ptr1->next->data = temp;
+                    swapped = true;
+                }
+                ptr1 = ptr1->next;
+            }
+            lptr = ptr1;
+        } while (swapped);
+
+        cout << "\n[✓] Data riwayat pesanan berhasil diurutkan berdasarkan nominal billing terbesar!\n";
+    }
+
+    bool batalkanPesanan(string kode, ListPertandingan& listMatch) {
+        if (head == nullptr) return false;
+
+        NodePesanan* curr = head;
+        while (curr != nullptr) {
+            if (curr->data.kodeBooking == kode) {
+                
+                // Jika status lunas/pending, kembalikan kuota tiket ke stadion
+                if (curr->data.statusBayar != "KADALUARSA") {
+                    NodePertandingan* matchNode = listMatch.dapatkanMatchById(curr->data.idPertandingan);
+                    if (matchNode != nullptr) {
+                        for (int i = 0; i < 3; i++) {
+                            if (matchNode->data.kelas[i].namaKelas == curr->data.kelasDipilih) {
+                                matchNode->data.kelas[i].sisaTiket += curr->data.jumlahTiket;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // Lepas linkage node
+                if (curr == head && curr == tail) {
+                    head = nullptr;
+                    tail = nullptr;
+                } else if (curr == head) {
+                    head = head->next;
+                    head->prev = nullptr;
+                } else if (curr == tail) {
+                    tail = tail->prev;
+                    tail->next = nullptr;
+                } else {
+                    curr->prev->next = curr->next;
+                    curr->next->prev = curr->prev;
+                }
+
+                delete curr;
+                return true;
+            }
+            curr = curr->next;
+        }
+        return false;
+    }
+
+    void eksporKeFile() {
+        if (head == nullptr) {
+            cout << "[!] Riwayat kosong, tidak ada file invoice yang dicetak.\n";
+            return;
+        }
+
+        ofstream file;
+        file.open("manifest_yesplis.txt", ios::out);
+
+        if (!file.is_open()) {
+            cout << "[!] Galat: Gagal menulis berkas teks invoice.\n";
+            return;
+        }
+
+        file << "=========================================================================\n";
+        file << "                    DATA MANIFEST TIKET STADION - YESPLIS                \n";
+        file << "=========================================================================\n";
+        
+        NodePesanan* curr = head;
+        int num = 1;
+        while (curr != nullptr) {
+            // Hanya mengekspor tiket yang transaksinya sudah LUNAS
+            if (curr->data.statusBayar == "LUNAS") {
+                file << num++ << ". Kode Booking : " << curr->data.kodeBooking << " [LUNAS]\n";
+                file << "   Nama Pemesan : " << curr->data.namaPemesan << " (" << curr->data.nomorHp << ")\n";
+                file << "   Match        : " << curr->data.detailMatch << "\n";
+                file << "   Kategori     : " << curr->data.kelasDipilih << "\n";
+                file << "   Kuantitas    : " << curr->data.jumlahTiket << " Tiket\n";
+                file << "   Metode Bayar : " << curr->data.metodeBayar << "\n";
+                file << "   Total Bayar  : Rp. " << curr->data.totalHarga << "\n";
+                file << "-------------------------------------------------------------------------\n";
+            }
+            curr = curr->next;
+        }
+        
+        file.close();
+        cout << "\n[✓] Berhasil mengekspor manifest tiket LUNAS ke 'manifest_yesplis.txt'!\n";
+    }
+};
+
+// ====================================================================
+// UTILITY FUNCTION (Validasi Input)
+// ====================================================================
+void bersihkanInput() {
+    cin.clear();
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+}
+
+// ====================================================================
+// INTERFACE DRIVER PROGRAM (MAIN)
+// ====================================================================
