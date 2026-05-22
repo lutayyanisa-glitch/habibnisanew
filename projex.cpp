@@ -155,3 +155,80 @@ public:
         return nullptr;
     }
 };
+
+
+// ====================================================================
+// 2. CLASS DOUBLE LINKED LIST (HEAD - TAIL) - TRANSAKSI & PESANAN
+// ====================================================================
+class ListPesanan {
+private:
+    NodePesanan* head;
+    NodePesanan* tail;
+    int counterPesanan;
+
+public:
+    ListPesanan() {
+        head = nullptr;
+        tail = nullptr;
+        counterPesanan = 100;
+    }
+
+    string buatKodeBooking() {
+        counterPesanan++;
+        return "YPL-" + to_string(counterPesanan);
+    }
+
+    void tambahPesanan(Pesanan baru) {
+        NodePesanan* newNode = new NodePesanan;
+        newNode->data = baru;
+        newNode->next = nullptr;
+        newNode->prev = nullptr;
+
+        if (head == nullptr) {
+            head = newNode;
+            tail = newNode;
+        } else {
+            tail->next = newNode;
+            newNode->prev = tail;
+            tail = newNode;
+        }
+    }
+
+    // SEARCHING & GET NODE PESANAN UNTUK PROSES PEMBAYARAN
+    NodePesanan* cariBooking(string kode) {
+        NodePesanan* curr = head;
+        while (curr != nullptr) {
+            if (curr->data.kodeBooking == kode) {
+                return curr;
+            }
+            curr = curr->next;
+        }
+        return nullptr;
+    }
+
+    void tampilkanSemuaPesanan() {
+        if (head == nullptr) {
+            cout << "\n[!] Belum ada tiket yang dipesan saat ini.\n";
+            return;
+        }
+
+        NodePesanan* curr = head;
+        cout << "\n============================================================================================================\n";
+        cout << "                                         DAFTAR RIWAYAT BOOKING TIKET                                       \n";
+        cout << "============================================================================================================\n";
+        cout << setw(10) << left << "KODE" << setw(13) << "PEMESAN" << setw(22) << "PERTANDINGAN" << setw(12) << "KELAS" << setw(6) << "QTY" << setw(12) << "TOTAL" << setw(15) << "METODE" << setw(10) << "STATUS" << endl;
+        cout << "------------------------------------------------------------------------------------------------------------\n";
+        
+        while (curr != nullptr) {
+            cout << setw(10) << left << curr->data.kodeBooking 
+                 << setw(13) << (curr->data.namaPemesan.length() > 11 ? curr->data.namaPemesan.substr(0,10)+"." : curr->data.namaPemesan)
+                 << setw(22) << (curr->data.detailMatch.length() > 20 ? curr->data.detailMatch.substr(0,19)+"." : curr->data.detailMatch)
+                 << setw(12) << curr->data.kelasDipilih 
+                 << setw(6) << curr->data.jumlahTiket 
+                 << "Rp." << setw(9) << curr->data.totalHarga 
+                 << setw(15) << curr->data.metodeBayar
+                 << "[" << curr->data.statusBayar << "]" << endl;
+            curr = curr->next;
+        }
+        cout << "============================================================================================================\n";
+    }
