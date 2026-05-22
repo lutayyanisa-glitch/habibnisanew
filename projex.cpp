@@ -363,3 +363,20 @@ int main() {
     dbMatch.tambahJadwal(103, "PSS Sleman", "Persib Bandung", "Stadion Maguwoharjo", "12-Jun-2026", "20:30 WIB",
                          "VIP Utama", 200000, 10, "Tribun Barat", 120000, 45, "Utara-Selatan", 75000, 80);
     }
+    int menuUtama = 0;
+
+    while (menuUtama != 8) {
+        cout << "\n==================================================\n";
+        cout << "          TICKETING SOCCER SYSTEM - YESPLIS        \n";
+        cout << "==================================================\n";
+        cout << " 1. Display Semua Jadwal & Kategori Tiket\n";
+        cout << " 2. Cari Jadwal Berdasarkan Nama Klub\n";
+        cout << " 3. Transaksi Pembelian Tiket (Booking)\n";
+        cout << " 4. Pembayaran Tiket Pending (Payment Gate)\n";
+        cout << " 5. Tampilkan Antrean & Riwayat Booking\n";
+        cout << " 6. Urutkan Riwayat Booking (Harga Tertinggi)\n";
+        cout << " 7. Batalkan Pesanan Tiket (Refund / Delete Node)\n";
+        cout << " 8. Cetak Invoice Lunas & Keluar Aplikasi\n";
+        cout << "--------------------------------------------------\n";
+        cout << " Pilih Operasi Menu (1-8): ";
+        cin >> menuUtama;
