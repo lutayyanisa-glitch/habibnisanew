@@ -344,14 +344,212 @@ public:
     }
 };
 
-// ====================================================================
-// UTILITY FUNCTION (Validasi Input)
-// ====================================================================
+
 void bersihkanInput() {
     cin.clear();
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
 }
+int main() {
+    ListPertandingan dbMatch;
+    ListPesanan dbPesanan;
 
-// ====================================================================
-// INTERFACE DRIVER PROGRAM (MAIN)
-// ====================================================================
+    // Seeding data default awal (Single Linked List)
+    dbMatch.tambahJadwal(101, "PSS Sleman", "Persija Jakarta", "Stadion Maguwoharjo", "28-May-2026", "19:00 WIB",
+                         "VIP Utama", 150000, 40, "Tribun Barat", 90000, 120, "Utara-Selatan", 55000, 300);
+    
+    dbMatch.tambahJadwal(102, "PSS Sleman", "Persebaya Surabaya", "Stadion Maguwoharjo", "05-Jun-2026", "15:30 WIB",
+                         "VIP Utama", 160000, 15, "Tribun Barat", 95000, 60, "Utara-Selatan", 60000, 100);
+
+    dbMatch.tambahJadwal(103, "PSS Sleman", "Persib Bandung", "Stadion Maguwoharjo", "12-Jun-2026", "20:30 WIB",
+                         "VIP Utama", 200000, 10, "Tribun Barat", 120000, 45, "Utara-Selatan", 75000, 80);
+
+    int menuUtama = 0;
+
+    while (menuUtama != 8) {
+        cout << "\n==================================================\n";
+        cout << "          TICKETING SOCCER SYSTEM - YESPLIS        \n";
+        cout << "==================================================\n";
+        cout << " 1. Display Semua Jadwal & Kategori Tiket\n";
+        cout << " 2. Cari Jadwal Berdasarkan Nama Klub\n";
+        cout << " 3. Transaksi Pembelian Tiket (Booking)\n";
+        cout << " 4. Pembayaran Tiket Pending (Payment Gate)\n";
+        cout << " 5. Tampilkan Antrean & Riwayat Booking\n";
+        cout << " 6. Urutkan Riwayat Booking (Harga Tertinggi)\n";
+        cout << " 7. Batalkan Pesanan Tiket (Refund / Delete Node)\n";
+        cout << " 8. Cetak Invoice Lunas & Keluar Aplikasi\n";
+        cout << "--------------------------------------------------\n";
+        cout << " Pilih Operasi Menu (1-8): ";
+        cin >> menuUtama;
+
+        if (cin.fail()) {
+            bersihkanInput();
+            cout << "[!] Error: Harap masukkan angka yang valid!\n";
+            continue;
+        }
+
+        if (menuUtama == 1) {
+            dbMatch.tampilkanJadwal();
+        } 
+        else if (menuUtama == 2) {
+            string searchKey;
+            cout << "\nMasukkan Nama Klub yang dicari: ";
+            cin.ignore();
+            getline(cin, searchKey);
+            dbMatch.cariPertandingan(searchKey);
+        } 
+        else if (menuUtama == 3) {
+            dbMatch.tampilkanJadwal();
+            int targetId, pilihanKelas, qty;
+            
+            cout << "\nMasukkan ID Pertandingan yang ingin dibeli: ";
+            cin >> targetId;
+            
+            NodePertandingan* matchNode = dbMatch.dapatkanMatchById(targetId);
+            if (matchNode == nullptr) {
+                cout << "[!] ID Pertandingan tidak ditemukan di sistem!\n";
+                continue;
+            }
+
+            cout << "Pilih Kategori Kelas Tiket (1-3): ";
+            cin >> pilihanKelas;
+            if (pilihanKelas < 1 || pilihanKelas > 3) {
+                cout << "[!] Pilihan kategori tiket tidak tersedia!\n";
+                continue;
+            }
+            int indeksKelas = pilihanKelas - 1;
+
+            cout << "Jumlah Tiket yang ingin dibeli: ";
+            cin >> qty;
+
+            if (qty <= 0) {
+                cout << "[!] Kuantitas pembelian tidak boleh kurang dari 1!\n";
+                continue;
+            }
+            if (qty > matchNode->data.kelas[indeksKelas].sisaTiket) {
+                cout << "[!] Transaksi Gagal! Stok tiket tidak mencukupi.\n";
+                continue;
+            }
+
+            string namaUser, hpUser;
+            cout << "Nama Lengkap Pemesan : ";
+            cin.ignore();
+            getline(cin, namaUser);
+            cout << "Nomor HP Aktif       : ";
+            cin >> hpUser;
+
+            // Update kuota tiket di single linked list via pointer
+            matchNode->data.kelas[indeksKelas].sisaTiket -= qty;
+
+            int totalBiaya = qty * matchNode->data.kelas[indeksKelas].harga;
+            string deskripsiMatch = matchNode->data.timHome + " vs " + matchNode->data.timAway;
+
+            // Masukkan data baru dengan status PENDING awal sebelum dibayar
+            Pesanan notaBaru;
+            notaBaru.kodeBooking = dbPesanan.buatKodeBooking();
+            notaBaru.namaPemesan = namaUser;
+            notaBaru.nomorHp = hpUser;
+            notaBaru.idPertandingan = targetId;
+            notaBaru.detailMatch = deskripsiMatch;
+            notaBaru.kelasDipilih = matchNode->data.kelas[indeksKelas].namaKelas;
+            notaBaru.jumlahTiket = qty;
+            notaBaru.totalHarga = totalBiaya;
+            notaBaru.metodeBayar = "-";
+            notaBaru.statusBayar = "PENDING";
+
+            dbPesanan.tambahPesanan(notaBaru);
+
+            cout << "\n[✓] BOOKING BERHASIL! Kode Booking Anda: " << notaBaru.kodeBooking << "\n";
+            cout << "    Total Tagihan: Rp. " << totalBiaya << " (Silakan lanjut ke Menu 4 untuk Membayar)\n";
+        } 
+        else if (menuUtama == 4) {
+            // MODUL PEMBAYARAN BARU
+            string searchKode;
+            cout << "\nMasukkan Kode Booking Tiket Anda (Misal: YPL-101): ";
+            cin >> searchKode;
+
+            NodePesanan* dataNota = dbPesanan.cariBooking(searchKode);
+
+            if (dataNota == nullptr) {
+                cout << "[!] Kode Booking tidak terdaftar di sistem!\n";
+                continue;
+            }
+
+            if (dataNota->data.statusBayar == "LUNAS") {
+                cout << "[!] Tiket dengan kode " << searchKode << " sudah berstatus LUNAS sebelumnya.\n";
+                continue;
+            }
+
+            cout << "\n--------------------------------------------------\n";
+            cout << "               YESPLIS PAYMENT GATEWAY            \n";
+            cout << "--------------------------------------------------\n";
+            cout << " Kode Tiket    : " << dataNota->data.kodeBooking << endl;
+            cout << " Nama Pemesan  : " << dataNota->data.namaPemesan << endl;
+            cout << " Laga Bola     : " << dataNota->data.detailMatch << endl;
+            cout << " Total Tagihan : Rp. " << dataNota->data.totalHarga << endl;
+            cout << "--------------------------------------------------\n";
+            cout << " Pilih Metode Pembayaran:\n";
+            cout << "   1. BCA Virtual Account\n";
+            cout << "   2. Mandiri Virtual Account\n";
+            cout << "   3. Dana E-Wallet\n";
+            cout << "   4. ShopeePay\n";
+            cout << " Masukkan Pilihan (1-4): ";
+            
+            int pilBayar;
+            cin >> pilBayar;
+
+            switch (pilBayar) {
+                case 1: dataNota->data.metodeBayar = "Bank BCA VA"; break;
+                case 2: dataNota->data.metodeBayar = "Bank Mandiri VA"; break;
+                case 3: dataNota->data.metodeBayar = "Dana App"; break;
+                case 4: dataNota->data.metodeBayar = "ShopeePay"; break;
+                default: dataNota->data.metodeBayar = "Manual Cash"; break;
+            }
+
+            int uangUser;
+            cout << " Masukkan Nominal Uang Bayar: Rp. ";
+            cin >> uangUser;
+
+            if (uangUser < dataNota->data.totalHarga) {
+                cout << "\n[!] Pembayaran Ditolak! Uang Anda kurang sebesar: Rp. " << (dataNota->data.totalHarga - uangUser) << endl;
+                cout << "    Status tiket tetap PENDING.\n";
+            } else {
+                dataNota->data.statusBayar = "LUNAS";
+                cout << "\n[✓] TRANSMISI PEMBAYARAN BERHASIL!\n";
+                if (uangUser > dataNota->data.totalHarga) {
+                    cout << "    Uang Kembalian Anda: Rp. " << (uangUser - dataNota->data.totalHarga) << endl;
+                }
+                cout << "    Status Tiket saat ini: [LUNAS] & Siap diekspor ke manifest file.\n";
+            }
+        }
+        else if (menuUtama == 5) {
+            dbPesanan.tampilkanSemuaPesanan();
+        } 
+        else if (menuUtama == 6) {
+            dbPesanan.urutkanPesanan();
+            dbPesanan.tampilkanSemuaPesanan();
+        } 
+        else if (menuUtama == 7) {
+            dbPesanan.tampilkanSemuaPesanan();
+            string kodeBatal;
+            cout << "\nMasukkan Kode Booking yang ingin dibatalkan: ";
+            cin >> kodeBatal;
+
+            if (dbPesanan.batalkanPesanan(kodeBatal, dbMatch)) {
+                cout << "\n[✓] Sukses: Pesanan " << kodeBatal << " berhasil direfund & dihapus dari memori.\n";
+            } else {
+                cout << "\n[!] Gagal: Kode Booking salah atau tidak terdaftar.\n";
+            }
+        } 
+        else if (menuUtama == 8) {
+            dbPesanan.eksporKeFile();
+            cout << "\n=======================================================\n";
+            cout << "     KELUAR: Terima Kasih Telah Menggunakan Yesplis     \n";
+            cout << "=======================================================\n";
+        } 
+        else {
+            cout << "[!] Menu tidak terdaftar. Pilih antara 1 hingga 8.\n";
+        }
+    }
+
+    return 0;
+}
